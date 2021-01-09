@@ -3,11 +3,12 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-
-import pymongo
 from pymongo import MongoClient
+from rich.console import Console
+from rich.table import Table
 
-from pprint import pprint
+
+# from pprint import pprint
 
 
 class SquadCounter:
@@ -19,7 +20,7 @@ counter = SquadCounter()
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 client = discord.Client()
-
+print(TOKEN)
 mango_url = os.getenv('MANGO_URL')
 cluster = MongoClient(mango_url)
 db = cluster["ChronoHunt"]
@@ -133,46 +134,62 @@ async def clear(ctx):
     await ctx.channel.send(f'All non permanent squads have been deleted!')
 
 
-@bot.command(name='perm', help='Command for making a Chrono Hunt Squad permanent. Call with !perm squad_number')
-async def perm(ctx, arg1):
-    print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}: {arg1}")
-    # Make sure this squad number exists
-    myquery = {"squad_num": int(arg1)}
-    print(myquery)
-    if collection.count_documents(myquery) == 0:
-        await ctx.channel.send(f'Squad number {arg1} does not exist. Try using the !squads command to see the squads and their numbers')
-        return
+# @bot.command(name='perm', help='Command for making a Chrono Hunt Squad permanent. Call with !perm squad_number')
+# async def perm(ctx, arg1):
+#     print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}: {arg1}")
+#     # Make sure this squad number exists
+#     myquery = {"squad_num": int(arg1)}
+#     print(myquery)
+#     if collection.count_documents(myquery) == 0:
+#         await ctx.channel.send(f'Squad number {arg1} does not exist. Try using the !squads command to see the squads and their numbers')
+#         return
+#
+#     newvalues = {"$set": {"is_perm": 1}}
+#
+#     collection.update_one(myquery, newvalues)
+#
+#     await ctx.channel.send(f'Squad {arg1} has been upgraded to permanent status!')
 
-    newvalues = {"$set": {"is_perm": 1}}
 
-    collection.update_one(myquery, newvalues)
-
-    await ctx.channel.send(f'Squad {arg1} has been upgraded to permanent status!')
-
-
-@bot.command(name='notperm', help='Command for making a Chrono Hunt Squad no longer permanent. Call with !notperm squad_number')
-async def not_perm(ctx, arg1):
-    print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}: {arg1}")
-    # Make sure this squad number exists
-    myquery = {"squad_num": int(arg1)}
-    print(myquery)
-    if collection.count_documents(myquery) == 0:
-        await ctx.channel.send(f'Squad number {arg1} does not exist. Try using the !squads command to see the squads and their numbers')
-        return
-
-    newvalues = {"$set": {"is_perm": 0}}
-
-    collection.update_one(myquery, newvalues)
-
-    await ctx.channel.send(f'Permanent status for squad {arg1} has been removed!')
+# @bot.command(name='notperm', help='Command for making a Chrono Hunt Squad no longer permanent. Call with !notperm squad_number')
+# async def not_perm(ctx, arg1):
+#     print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}: {arg1}")
+#     # Make sure this squad number exists
+#     myquery = {"squad_num": int(arg1)}
+#     print(myquery)
+#     if collection.count_documents(myquery) == 0:
+#         await ctx.channel.send(f'Squad number {arg1} does not exist. Try using the !squads command to see the squads and their numbers')
+#         return
+#
+#     newvalues = {"$set": {"is_perm": 0}}
+#
+#     collection.update_one(myquery, newvalues)
+#
+#     await ctx.channel.send(f'Permanent status for squad {arg1} has been removed!')
 
 
 @bot.command(name='squads', help='Command for displaying all Chrono Hunt Squads. Call with !squads')
 async def squads(ctx):
+    console = Console()
     cursor = collection.find({})
-    print_header()
-    for document in cursor:
-        print_row()
 
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Squad Number", style="dim", width=12)
+    table.add_column("Member 1")
+    table.add_column("Member 2")
+    table.add_column("Member 3")
+
+    # (('apple', '$1.09', '80'), ('truffle', '$58.01', '2')):
+    # ...
+    # print
+    '{0:<10} {1:>8} {2:>8}'.format((('apple', '$1.09', '80'), ('truffle', '$58.01', '2')))
+
+    output = '{0:^15} {1:^10} {2:^10} {3:^10}\n'.format(['Squad Number', 'Member 1', 'Member 2', 'Member 3'])
+
+    for document in cursor:
+        output += '{0:^15} {1:^10} {2:^10} {3:^10}\n'.format((str(document['squad_num']), str(document['member_1']), str(document['member_2']), str(document['member_3'])))
+        # table.add_row(str(document['squad_num']), str(document['member_1']), str(document['member_2']), str(document['member_3']))
+
+    await ctx.channel.send(output)
 
 bot.run(TOKEN)
