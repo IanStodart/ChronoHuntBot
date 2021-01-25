@@ -322,19 +322,21 @@ async def squads(ctx):
         count += 1
     await ctx.channel.send(embed=embed)
 
-    cursor = available_collection.find({'is_main': 1})
-    embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [MAIN] List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
-    for document in cursor:
-        m1 = str(document['name'])
-        embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
-    await ctx.channel.send(embed=embed)
+    if not(available_collection.count_documents({'is_main': 1})):
+        cursor = available_collection.find({'is_main': 1})
+        embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [MAIN] List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+        for document in cursor:
+            m1 = str(document['name'])
+            embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
+        await ctx.channel.send(embed=embed)
 
-    cursor = available_collection.find({'is_main': 0})
-    embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [ALT] List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
-    for document in cursor:
-        m1 = str(document['name'])
-        embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
-    await ctx.channel.send(embed=embed)
+    if not (available_collection.count_documents({'is_main': 0})):
+        cursor = available_collection.find({'is_main': 0})
+        embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [ALT] List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+        for document in cursor:
+            m1 = str(document['name'])
+            embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
+        await ctx.channel.send(embed=embed)
 
 
 @bot.command(name='availablemain', help='Command for adding character to the Available list') # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
@@ -374,19 +376,59 @@ async def availablealt(ctx, arg1):
 
     await ctx.channel.send(f'{arg1} has been added to the Available Alts List!')
 
+
+@bot.command(name='rules', help='Command for listing the rules of the hunt') # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
+async def rules(ctx):
+
+    embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Rules List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+    embed.add_field(name=f'1. DO NOT talk about the hunt to anyone, anywhere, unless it is in Obsolete TS or Discord', value='\u200b', inline=False)
+    embed.add_field(name=f'2. DO NOT accept the hunt gear', value='\u200b', inline=False)
+    embed.add_field(name=f'3. If a Hunt leader tells you to, you may take the gear', value='\u200b', inline=False)
+    embed.add_field(name=f'4. MAIN Squads (as indicated by the !squads command) should be queued before any ALT squads', value='\u200b', inline=False)
+    embed.add_field(name=f'5. If your ALT squad is made up of characters that do not get played or you have no plans for end game gear, DO NOT ENTER the hunt on their squads', value='\u200b', inline=False)
+    embed.add_field(name=f'> TLDR: For ALT squads (queue - yes, enter - no)', value='\u200b', inline=True)
+    embed.add_field(name=f'6. DO NOT refine your crown of apex when you get it, until Drago organizes a time for us to all +12 it together!', value='\u200b', inline=False)
+    await ctx.channel.send(embed=embed)
+
+
+@bot.command(name='howtohunt', help='Command for explaining Chrono Hunt')# MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
+async def howtohunt(ctx):
+    print("How to Hunt")
+    embed = discord.Embed(title=f"__**{ctx.guild.name}: How to Chrono Hunt:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+
+    embed.add_field(name=f'Chrono Hunt (aka The Hunt) is an instance event that requires 99 characters to be in the queue to trigger so that we can enter.', value='\u200b', inline=False)
+    embed.add_field(name=f'To prepare for The Hunt, go to your homestead, or your squad leaders homestead.' , value='\u200b', inline=False)
+    embed.add_field(name=f'If you have a set MAIN squad, squad up with them, and let The Hunt leaders know that you are ready' , value='\u200b', inline=False)
+    embed.add_field(name=f'If you have an ALT, either squad with your own alts and add the squad to the bot, or mark yourself as an available alt using the bot', value='\u200b', inline=False)
+    embed.add_field(name=f'If your main needs a squad, mark yourself as an available main, and we will find you a squad.', value='\u200b', inline=False)
+    embed.add_field(name=f'We have 8 set squads that we plan to run with every week, meaning 24 slots for mains to get the Chrono Flux every week (at least that\'s the plan)', value='\u200b', inline=False)
+    embed.add_field(name=f'We use a rotational system to ensure that everyone is getting the same number of rewards (every 8 rounds, everyone will have the same rewards), this ensures a fair process to everyone in order to get the gear that can be made with the chrono flux.', value='\u200b', inline=False)
+    embed.add_field(name=f'When it is time to queue up (The Chrono Hunt leader will let you know when), ONLY THE SQUAD LEADERS may leave the homestead and go to the NPC at the center of Neverfall to queue up for The Hunt', value='\u200b', inline=False)
+    embed.add_field(name=f'Squad leads, please make sure your team is all present, and let them know when you queue them up, they will have 30 seconds for both of them to accept, or you dont get added to the queue.', value='\u200b', inline=False)
+    embed.add_field(name=f'Once queued up, you will have a golden compass next to your toolbar (usually in the bottom right of the screen) the leader should go back into their homestead.', value='\u200b', inline=False)
+    embed.add_field(name=f'We do not want to crowd around the NPC because we dont want other factions to know we are doing the event, and then we cant ensure that our members get their rewards', value='\u200b', inline=False)
+    embed.add_field(name=f'When all 99 characters have entered the queue, the queue will "pop" and it will give you 60 seconds to enter.', value='\u200b', inline=False)
+    embed.add_field(name=f'DO NOT ENTER ON YOUR ALTS, ONLY ENTER ON YOUR MAINS', value='\u200b', inline=False)
+    embed.add_field(name=f'Once inside, teleport to the K in Kerrod (usually found by all the flags on the map, but it is in the center a bit to the left', value='\u200b', inline=False)
+    embed.add_field(name=f'Once we get teleported (2-3 min after entering), we will kill any alts that went in (we try to keep this to a minimum so the process is fast)', value='\u200b', inline=False)
+    embed.add_field(name=f'After we kill all the alts, we will kill the "main" alts, which plan to be geared up to endgame.', value='\u200b', inline=False)
+    embed.add_field(name=f'Then we will kill squads in the order of the rotation until the last squad remains.', value='\u200b', inline=False)
+    embed.add_field(name=f'Once your squad dies, please click the "leave" button on the menu that pops up, and go wait in your homestead.', value='\u200b', inline=False)
+    embed.add_field(name=f'After we reach the last squad and everyone leaves, you will receive mail with your reward.', value='\u200b', inline=False)
+    embed.add_field(name=f'We ask that unless you are redeeming the chrono sand, please keep the rewards in the bank so that sins can check your inventory and report that we are doing The Hunt (we wanna keep this on the DL/QT)', value='\u200b', inline=False)
+    embed.add_field(name=f'There is a 10 minute break to mingle, use the restroom, get snacks, etc in between runs; this is because the alts that didnt enter will have a 10 minute timer before they can requeue', value='\u200b', inline=False)
+    embed.add_field(name=f'If you got this far, thank you for reading the rule of The Hunt', value='\u200b', inline=False)
+
+    await ctx.channel.send(embed=embed)
+
 bot.run(TOKEN)
-# headers=['Squad Number', 'Member 1', 'Member 2', 'Member3']
-# Need instructions for how to join Chrono hunt
 # mark whether queued up or not
 # if someone is added to a squad that is in the avialble lists, they should be auto removed from available
 # would be nice to have a createsquads option that would take the available lists and make squads out of them
 #
-# rule 1 - don't accept the gear
-# rule 2 - don't take gear unless you're told to
-# rule 3 - don't enter on alt that isn't played at all (queue - yes, enter - no)
-# rule 4 - queue main squads first
-#
 # I should add queue status to this, but also need everyone to add their alt lists here
 # status to see if someone is in squad or available
 #
+# Keep track of rotations
 # remove people from available
+# keep track of late comers
