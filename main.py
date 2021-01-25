@@ -14,6 +14,8 @@ db = cluster["ChronoHunt"]
 
 squads_collection = db["squads"]
 available_collection = db["available"]
+count_collection = db["rotations"]
+
 
 bot = commands.Bot(command_prefix='!')
 
@@ -125,8 +127,7 @@ async def newmain(ctx, arg1, *args):
         await ctx.channel.send(f'{arg3} already belongs to a squad. Please delete or edit the other squad')
         return
 
-    post = {"member_1": arg1.lower(), "member_2": arg2.lower(), "member_3": arg3.lower(), "is_perm": 0,
-            "times_won": 0, "last_win_date": "", "squad_num": squads_collection.count(), "is_main": 1}
+    post = {"member_1": arg1.lower(), "member_2": arg2.lower(), "member_3": arg3.lower(), "is_main": 1, "is_queued": 0}
     squads_collection.insert_one(post)
 
     await ctx.channel.send(f'Squad of {arg1}, {arg2}, and {arg3} has been added!')
@@ -157,14 +158,13 @@ async def newalt(ctx, arg1, *args):
         await ctx.channel.send(f'{arg3} already belongs to a squad. Please delete or edit the other squad')
         return
 
-    post = {"member_1": arg1.lower(), "member_2": arg2.lower(), "member_3": arg3.lower(), "is_perm": 0,
-            "times_won": 0, "last_win_date": "", "squad_num": squads_collection.count(), "is_main": 0}
+    post = {"member_1": arg1.lower(), "member_2": arg2.lower(), "member_3": arg3.lower(), "is_main": 0, "is_queued": 0}
     squads_collection.insert_one(post)
 
     await ctx.channel.send(f'Squad of {arg1}, {arg2}, and {arg3} has been added!')
 
 
-@bot.command(name='change', help='Command for change a member an existing Chrono Hunt Squad.') # Call with !edit squad_number member_number new_member_name')
+@bot.command(name='change', help='Command for change a member an existing Chrono Hunt Squad.')  # Call with !edit squad_number member_number new_member_name')
 async def change_member(ctx, arg1, arg2, arg3):
     print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}: {arg1}: {arg2}: {arg3}")
 
@@ -197,7 +197,7 @@ async def change_member(ctx, arg1, arg2, arg3):
     await ctx.channel.send(f'Squad {arg1} has been updated!')
 
 
-@bot.command(name='add', help='Command to add a member to a squad that has an [EMPTY] spot.') # Call with !add squad_number, new_member_name')
+@bot.command(name='add', help='Command to add a member to a squad that has an [EMPTY] spot.')  # Call with !add squad_number, new_member_name')
 async def add_member(ctx, arg1, arg2):
 
     if check_if_member_exists_in_squad(arg2):
@@ -229,7 +229,7 @@ async def add_member(ctx, arg1, arg2):
     await ctx.channel.send(f'{arg2} has been added to Squad {arg1}!')
 
 
-@bot.command(name='remove', help='Command to remove a member to from squad, creates[EMPTY] spot.') # Call with !add squad_number, new_member_name')
+@bot.command(name='remove', help='Command to remove a member to from squad, creates[EMPTY] spot.')  # Call with !add squad_number, new_member_name')
 async def remove_member(ctx, arg1, arg2):
 
     if not (check_if_member_exists_in_squad(arg2)):
@@ -261,7 +261,7 @@ async def remove_member(ctx, arg1, arg2):
     await ctx.channel.send(f'{arg2} has been removed from Squad {arg1}!')
 
 
-@bot.command(name='delete', help='Command for deleting a Chrono Hunt Squad.') # Call with !delete squad_number')
+@bot.command(name='delete', help='Command for deleting a Chrono Hunt Squad.')  # Call with !delete squad_number')
 async def delete(ctx, arg1):
 
     # Make sure this squad number exists
@@ -285,7 +285,7 @@ async def delete(ctx, arg1):
     await ctx.channel.send(f'Squad {arg1} has been deleted!')
 
 
-@bot.command(name='clear', help='Command for clearing all Chrono Hunt Squads not marked permanent.') # Call with !clear')
+@bot.command(name='clear', help='Command for clearing all Chrono Hunt Squads not marked permanent.')  # Call with !clear')
 async def clear(ctx):
     print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}")
     # Make sure this squad number exists
@@ -297,49 +297,57 @@ async def clear(ctx):
     await ctx.channel.send(f'All non permanent squads have been deleted!')
 
 
-@bot.command(name='squads', help='Command for displaying all Chrono Hunt Squads.') # Call with !squads')
+@bot.command(name='squads', help='Command for displaying all Chrono Hunt Squads.')  # Call with !squads')
 async def squads(ctx):
     cursor = squads_collection.find({'is_main': 1})
-    embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt [MAIN] Squads List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+    # embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt [MAIN] Squads List:**__", color=0x03f8fc)
+    embed = discord.Embed(color=0x11802D, description=f"```css\n {ctx.guild.name} Chrono Hunt [MAIN] Squads List\n```")
     count = 1
     for document in cursor:
-        num = str(document['squad_num'])
         m1 = '**' + str(document['member_1']) + '**' if str(document['member_1']) == '[empty]' else str(document['member_1'])
         m2 = '**' + str(document['member_2']) + '**' if str(document['member_2']) == '[empty]' else str(document['member_2'])
         m3 = '**' + str(document['member_3']) + '**' if str(document['member_3']) == '[empty]' else str(document['member_3'])
-        embed.add_field(name=f'**Squad {count}**', value=f'> {m1}\n > {m2}\n > {m3}')
+
+        if document['is_queued'] == 1:
+            embed.add_field(name=f'**Squad {count}** :white_check_mark:', value=f'> {m1}\n > {m2}\n > {m3}')
+        else:
+            embed.add_field(name=f'**Squad {count}** :octagonal_sign:', value=f'> {m1}\n > {m2}\n > {m3}')
         count += 1
     await ctx.channel.send(embed=embed)
 
     cursor = squads_collection.find({'is_main': 0})
-    embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt [ALT] Squads List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+    # embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt [ALT] Squads List:**__", color=0x03f8fc)
+    embed = discord.Embed(color=0x11802D, description=f"```css\n  {ctx.guild.name} Chrono Hunt [ALT] Squads List:\n```")
     for document in cursor:
-        num = str(document['squad_num'])
         m1 = '**' + str(document['member_1']) + '**' if str(document['member_1']) == '[empty]' else str(document['member_1'])
         m2 = '**' + str(document['member_2']) + '**' if str(document['member_2']) == '[empty]' else str(document['member_2'])
         m3 = '**' + str(document['member_3']) + '**' if str(document['member_3']) == '[empty]' else str(document['member_3'])
-        embed.add_field(name=f'**Squad {count}**', value=f'> {m1}\n > {m2}\n > {m3}')
+
+        if document['is_queued'] == 1:
+            embed.add_field(name=f'**Squad {count}** :white_check_mark:', value=f'> {m1}\n > {m2}\n > {m3}')
+        else:
+            embed.add_field(name=f'**Squad {count}** :octagonal_sign:', value=f'> {m1}\n > {m2}\n > {m3}')
         count += 1
     await ctx.channel.send(embed=embed)
 
-    if not(available_collection.count_documents({'is_main': 1})):
+    if not(available_collection.count_documents({'is_main': 1}) == 0):
         cursor = available_collection.find({'is_main': 1})
-        embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [MAIN] List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+        embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [MAIN] List:**__", color=0x03f8fc)
         for document in cursor:
             m1 = str(document['name'])
             embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
         await ctx.channel.send(embed=embed)
 
-    if not (available_collection.count_documents({'is_main': 0})):
+    if not (available_collection.count_documents({'is_main': 0})) == 0:
         cursor = available_collection.find({'is_main': 0})
-        embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [ALT] List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+        embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [ALT] List:**__", color=0x03f8fc)
         for document in cursor:
             m1 = str(document['name'])
             embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
         await ctx.channel.send(embed=embed)
 
 
-@bot.command(name='availablemain', help='Command for adding character to the Available list') # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
+@bot.command(name='availablemain', help='Command for adding character to the Available list')  # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
 async def availablemain(ctx, arg1):
 
     # Make sure none of these members are already in a squad
@@ -358,7 +366,7 @@ async def availablemain(ctx, arg1):
     await ctx.channel.send(f'{arg1} has been added to the Available Mains List!')
 
 
-@bot.command(name='availablealt', help='Command for adding character to the Available list') # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
+@bot.command(name='availablealt', help='Command for adding character to the Available list')  # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
 async def availablealt(ctx, arg1):
 
     # Make sure none of these members are already in a squad
@@ -377,10 +385,10 @@ async def availablealt(ctx, arg1):
     await ctx.channel.send(f'{arg1} has been added to the Available Alts List!')
 
 
-@bot.command(name='rules', help='Command for listing the rules of the hunt') # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
+@bot.command(name='rules', help='Command for listing the rules of the hunt')  # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
 async def rules(ctx):
 
-    embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Rules List:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+    embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Rules List:**__", color=0x03f8fc)
     embed.add_field(name=f'1. DO NOT talk about the hunt to anyone, anywhere, unless it is in Obsolete TS or Discord', value='\u200b', inline=False)
     embed.add_field(name=f'2. DO NOT accept the hunt gear', value='\u200b', inline=False)
     embed.add_field(name=f'3. If a Hunt leader tells you to, you may take the gear', value='\u200b', inline=False)
@@ -391,10 +399,10 @@ async def rules(ctx):
     await ctx.channel.send(embed=embed)
 
 
-@bot.command(name='howtohunt', help='Command for explaining Chrono Hunt')# MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
+@bot.command(name='howtohunt', help='Command for explaining Chrono Hunt')  # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
 async def howtohunt(ctx):
     print("How to Hunt")
-    embed = discord.Embed(title=f"__**{ctx.guild.name}: How to Chrono Hunt:**__", color=0x03f8fc, timestamp=ctx.message.created_at)
+    embed = discord.Embed(title=f"__**{ctx.guild.name} How to Chrono Hunt:**__", color=0x03f8fc)
 
     embed.add_field(name=f'Chrono Hunt (aka The Hunt) is an instance event that requires 99 characters to be in the queue to trigger so that we can enter.', value='\u200b', inline=False)
     embed.add_field(name=f'To prepare for The Hunt, go to your homestead, or your squad leaders homestead.' , value='\u200b', inline=False)
@@ -421,6 +429,140 @@ async def howtohunt(ctx):
 
     await ctx.channel.send(embed=embed)
 
+
+@bot.command(name='startday', help='Starts the Chrono Hunt day.')  # Resets the rotation marker, ')
+async def startday(ctx):
+    print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}")
+
+    cursor = count_collection.find()
+    for document in cursor:
+        id = document['_id']
+        myquery = {"_id": id}
+        newvalues = {"$set": {"count": 1}}
+        count_collection.update_one(myquery, newvalues)
+
+    cursor = squads_collection.find({'is_main': 1})
+
+    embed = discord.Embed(color=0x03f8fc, description=f"```fix\n {ctx.guild.name} Chrono Hunt Round 1:```")
+    count = 1
+    for document in cursor:
+        m1 = '**' + str(document['member_1']) + '**' if str(document['member_1']) == '[empty]' else str(document['member_1'])
+        m2 = '**' + str(document['member_2']) + '**' if str(document['member_2']) == '[empty]' else str(document['member_2'])
+        m3 = '**' + str(document['member_3']) + '**' if str(document['member_3']) == '[empty]' else str(document['member_3'])
+        if count == 1:
+            embed.add_field(name=f':crown:**Rank {count}**:crown:', value=f'> {m1}\n > {m2}\n > {m3}')
+        else:
+            embed.add_field(name=f'**Rank {count}**', value=f'> {m1}\n > {m2}\n > {m3}')
+        count += 1
+    await ctx.channel.send(embed=embed)
+
+
+@bot.command(name='rotate', help='Starts the Chrono Hunt day.')  # Resets the rotation marker, ')
+async def rotate(ctx):
+    print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}")
+
+    counts = count_collection.find()
+    count = int(counts[0]['count']) + 1
+    id = counts[0]['_id']
+    myquery = {"_id": id}
+    newvalues = {"$set": {"count": count}}
+    print(myquery)
+    print(newvalues)
+    count_collection.update_one(myquery, newvalues)
+
+    myquery = {}
+    newvalues = {"$set": {"is_queued": 0}}
+    print(myquery)
+    print(newvalues)
+    squads_collection.update_many(myquery, newvalues)
+
+    embed = discord.Embed(color=0x03f8fc, description=f"```fix\n {ctx.guild.name} Chrono Hunt Round {count}:```")
+    start = 0
+    end = 8 - (count - 1)
+    mains = squads_collection.find({'is_main': 1})
+    squad_list = []
+    i = 0
+
+    for item in mains:
+        if (i+1) < count:
+            squad_list.insert(end, [item['member_1'], item['member_2'], item['member_3']])
+            end = end + 1
+        else:
+            squad_list.insert(start, [item['member_1'], item['member_2'], item['member_3']])
+            start = start + 1
+        i = i + 1
+
+    count = 1
+    for item in squad_list:
+        if count == 1:
+            embed.add_field(name=f':crown:**Squad {count}**:crown:', value=f'> {item[0]}\n > {item[1]}\n > {item[2]}')
+        else:
+            embed.add_field(name=f'**Squad {count}**', value=f'> {item[0]}\n > {item[1]}\n > {item[2]}')
+        count = count + 1
+    await ctx.channel.send(embed=embed)
+
+
+@bot.command(name='queued', help='Command for marking a Chrono Hunt squad as queued')  # Call with !edit squad_number member_number new_member_name')
+async def queue(ctx, arg1):
+    print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}: {arg1}")
+
+    # Make sure this squad number exists
+    if not (check_if_squad_exists(arg1)):
+        await ctx.channel.send(f'Squad number {arg1} does not exist. Try using the !squads command to see the squads and their numbers')
+        return
+
+    mains = squads_collection.find({'is_main': 1})
+    alts = squads_collection.find({'is_main': 0})
+
+    temp = int(arg1) - 1
+
+    if int(arg1) <= mains.count():
+        focused_squad = mains[temp]
+        myquery = {"_id": focused_squad['_id']}
+        newvalues = {"$set": {"is_queued": 1}}
+        squads_collection.update_one(myquery, newvalues)
+    else:
+        focused_squad = alts[temp - mains.count()]
+        myquery = {"_id": focused_squad['_id']}
+        newvalues = {"$set": {"is_queued": 1}}
+        squads_collection.update_one(myquery, newvalues)
+    await ctx.channel.send(f'Squad {arg1} has been updated!')
+
+
+@bot.command(name='dequeued', help='Command for marking a Chrono Hunt squad as not queued')  # Call with !edit squad_number member_number new_member_name')
+async def dequeue(ctx, arg1):
+    print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}: {arg1}")
+
+    # Make sure this squad number exists
+    if not (check_if_squad_exists(arg1)):
+        await ctx.channel.send(f'Squad number {arg1} does not exist. Try using the !squads command to see the squads and their numbers')
+        return
+
+    mains = squads_collection.find({'is_main': 1})
+    alts = squads_collection.find({'is_main': 0})
+
+    temp = int(arg1) - 1
+
+    if int(arg1) <= mains.count():
+        focused_squad = mains[temp]
+        myquery = {"_id": focused_squad['_id']}
+        newvalues = {"$set": {"is_queued": 0}}
+        squads_collection.update_one(myquery, newvalues)
+    else:
+        focused_squad = alts[temp - mains.count()]
+        myquery = {"_id": focused_squad['_id']}
+        newvalues = {"$set": {"is_queued": 0}}
+        squads_collection.update_one(myquery, newvalues)
+    await ctx.channel.send(f'Squad {arg1} has been updated!')
+
+# @bot.command(name='test', help='test function, DO NOT USE')
+# async def test(ctx):
+#     embed = discord.Embed(title=f"Test", color=0x03f8fc, description="Test")
+#     embed.add_field(name=f':white_check_mark:', value=':octagonal_sign:')
+#     await ctx.channel.send(embed=embed)
+#
+#     embed = discord.Embed(title="Sample Embed", description=f'```fix\nThis is an embed that will show how to build an embed and the different components```', color=0x03f8fc)
+#     await ctx.channel.send(embed=embed)
 bot.run(TOKEN)
 # mark whether queued up or not
 # if someone is added to a squad that is in the avialble lists, they should be auto removed from available
@@ -431,4 +573,4 @@ bot.run(TOKEN)
 #
 # Keep track of rotations
 # remove people from available
-# keep track of late comers
+# keep track of late comersb
