@@ -495,9 +495,41 @@ async def rotate(ctx):
     count = 1
     for item in squad_list:
         if count == 1:
-            embed.add_field(name=f':crown:**Squad {count}**:crown:', value=f'> {item[0]}\n > {item[1]}\n > {item[2]}')
+            embed.add_field(name=f':crown:**Rank {count}**:crown:', value=f'> {item[0]}\n > {item[1]}\n > {item[2]}')
         else:
-            embed.add_field(name=f'**Squad {count}**', value=f'> {item[0]}\n > {item[1]}\n > {item[2]}')
+            embed.add_field(name=f'**Rank {count}**', value=f'> {item[0]}\n > {item[1]}\n > {item[2]}')
+        count = count + 1
+    await ctx.channel.send(embed=embed)
+
+
+@bot.command(name='rotation', help='Shows current squad rotations list')  # Resets the rotation marker, ')
+async def rotation(ctx):
+    print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}")
+
+    counts = count_collection.find()
+    count = int(counts[0]['count']) + 1
+    embed = discord.Embed(color=0x03f8fc, description=f"```fix\n {ctx.guild.name} Chrono Hunt Round {count}:```")
+    start = 0
+    end = 8 - (count - 1)
+    mains = squads_collection.find({'is_main': 1})
+    squad_list = []
+    i = 0
+
+    for item in mains:
+        if (i+1) < count:
+            squad_list.insert(end, [item['member_1'], item['member_2'], item['member_3']])
+            end = end + 1
+        else:
+            squad_list.insert(start, [item['member_1'], item['member_2'], item['member_3']])
+            start = start + 1
+        i = i + 1
+
+    count = 1
+    for item in squad_list:
+        if count == 1:
+            embed.add_field(name=f':crown:**Rank {count}**:crown:', value=f'> {item[0]}\n > {item[1]}\n > {item[2]}')
+        else:
+            embed.add_field(name=f'**Rank {count}**', value=f'> {item[0]}\n > {item[1]}\n > {item[2]}')
         count = count + 1
     await ctx.channel.send(embed=embed)
 
