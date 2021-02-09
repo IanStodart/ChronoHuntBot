@@ -19,6 +19,9 @@ count_collection = db["rotations"]
 
 bot = commands.Bot(command_prefix='!')
 
+mains_list_msg = []
+alts_list_msg = []
+
 
 @bot.event
 async def on_ready():
@@ -100,6 +103,62 @@ def find_member_to_update(focused_squad, myquery, arg2, arg3):
     else:
         return False
     return True
+
+
+# def printmains(ctx):
+#     cursor = squads_collection.find({'is_main': 1})
+#     # embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt [MAIN] Squads List:**__", color=0x03f8fc)
+#     embed = discord.Embed(color=0x11802D, description=f"```css\n {ctx.guild.name} Chrono Hunt [MAIN] Squads List\n```")
+#     count = 1
+#     for document in cursor:
+#         m1 = '**' + str(document['member_1']) + '**' if str(document['member_1']) == '[empty]' else str(document['member_1'])
+#         m2 = '**' + str(document['member_2']) + '**' if str(document['member_2']) == '[empty]' else str(document['member_2'])
+#         m3 = '**' + str(document['member_3']) + '**' if str(document['member_3']) == '[empty]' else str(document['member_3'])
+#
+#         if document['is_queued'] == 1:
+#             embed.add_field(name=f'**Squad {count}** :white_check_mark:', value=f'> {m1}\n > {m2}\n > {m3}')
+#         else:
+#             embed.add_field(name=f'**Squad {count}** :octagonal_sign:', value=f'> {m1}\n > {m2}\n > {m3}')
+#         count += 1
+#     await ctx.channel.send(embed=embed)
+
+
+# def printalts(ctx):
+#     count = squads_collection.count({'is_main': 1})
+#     cursor = squads_collection.find({'is_main': 0})
+#     # embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt [ALT] Squads List:**__", color=0x03f8fc)
+#     embed = discord.Embed(color=0x11802D, description=f"```css\n  {ctx.guild.name} Chrono Hunt [ALT] Squads List:\n```")
+#     for document in cursor:
+#         m1 = '**' + str(document['member_1']) + '**' if str(document['member_1']) == '[empty]' else str(document['member_1'])
+#         m2 = '**' + str(document['member_2']) + '**' if str(document['member_2']) == '[empty]' else str(document['member_2'])
+#         m3 = '**' + str(document['member_3']) + '**' if str(document['member_3']) == '[empty]' else str(document['member_3'])
+#
+#         if document['is_queued'] == 1:
+#             embed.add_field(name=f'**Squad {count}** :white_check_mark:', value=f'> {m1}\n > {m2}\n > {m3}')
+#         else:
+#             embed.add_field(name=f'**Squad {count}** :octagonal_sign:', value=f'> {m1}\n > {m2}\n > {m3}')
+#         count += 1
+#     await ctx.channel.send(embed=embed)
+#
+#
+# def printavailablemains(ctx):
+#     if not (available_collection.count_documents({'is_main': 1}) == 0):
+#         cursor = available_collection.find({'is_main': 1})
+#         embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [MAIN] List:**__", color=0x03f8fc)
+#         for document in cursor:
+#             m1 = str(document['name'])
+#             embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
+#         msg = await ctx.channel.send(embed=embed)
+#
+#
+# def printavailablealts(ctx):
+#     if not (available_collection.count_documents({'is_main': 0})) == 0:
+#         cursor = available_collection.find({'is_main': 0})
+#         embed = discord.Embed(title=f"__**{ctx.guild.name} Chrono Hunt Available [ALT] List:**__", color=0x03f8fc)
+#         for document in cursor:
+#             m1 = str(document['name'])
+#             embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
+#         msg = await ctx.channel.send(embed=embed)
 
 
 @bot.command(name='newmain', help='Command for adding a new MAIN temporary Chrono Hunt Squad.') # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
@@ -336,7 +395,7 @@ async def squads(ctx):
         for document in cursor:
             m1 = str(document['name'])
             embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
-        await ctx.channel.send(embed=embed)
+        msg = await ctx.channel.send(embed=embed)
 
     if not (available_collection.count_documents({'is_main': 0})) == 0:
         cursor = available_collection.find({'is_main': 0})
@@ -344,7 +403,7 @@ async def squads(ctx):
         for document in cursor:
             m1 = str(document['name'])
             embed.add_field(name=f'> {m1}', value='\u200b', inline=True)
-        await ctx.channel.send(embed=embed)
+        msg = await ctx.channel.send(embed=embed)
 
 
 @bot.command(name='availablemain', help='Command for adding character to the Available list')  # MUST HAVE AT LEAST 1 MEMBER.') # Call with !new name1 name2 name3')
@@ -534,7 +593,7 @@ async def rotation(ctx):
     await ctx.channel.send(embed=embed)
 
 
-@bot.command(name='queued', help='Command for marking a Chrono Hunt squad as queued')  # Call with !edit squad_number member_number new_member_name')
+@bot.command(name='q', help='Command for marking a Chrono Hunt squad as queued')  # Call with !edit squad_number member_number new_member_name')
 async def queue(ctx, arg1):
     print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}: {arg1}")
 
@@ -586,6 +645,45 @@ async def dequeue(ctx, arg1):
         newvalues = {"$set": {"is_queued": 0}}
         squads_collection.update_one(myquery, newvalues)
     await ctx.channel.send(f'Squad {arg1} has been updated!')
+
+
+@bot.command(name='daily', help='DO NOT USE')  # Call with !edit squad_number member_number new_member_name')
+async def daily(ctx):
+    print(f"{ctx.channel}: {ctx.author}: {ctx.author.name}")
+    emojis = [':bm:807714099660062770', ':wiz:807714149026627594', ':cleric:807714209953349682', ':archer:807714236201041980',
+              ':barb:807714278303858740', ':veno:807714310007685131', ':sin:807714398340775967', ':psy:807714442212671548',
+              ':seeker:807714502400540732', ':mystic:807714548692811797', ':db:807714591655329842', ':sb:807714667450335304',
+              ':er:807714704536895498', ':tech:807714737734811668']
+    message = await ctx.channel.send("DH")
+    for emoji in emojis:
+        await message.add_reaction(emoji)
+
+    message = await ctx.channel.send("TT")
+    for emoji in emojis:
+        await message.add_reaction(emoji)
+
+    message = await ctx.channel.send("IU")
+    for emoji in emojis:
+        await message.add_reaction(emoji)
+
+
+# @bot.event
+# async def on_reaction_add(reaction, user):
+#     embed = reaction.embeds[0]
+#     emoji = reaction.emoji
+#
+#     if user.bot:
+#         return
+#
+#     if emoji == "emoji 1":
+#         fixed_channel = bot.get_channel(channel_id)
+#         await fixed_channel.send(embed=embed)
+#     elif emoji == "emoji 2":
+#         #do stuff
+#     elif emoji == "emoji 3":
+#         #do stuff
+#     else:
+#         return
 
 # @bot.command(name='test', help='test function, DO NOT USE')
 # async def test(ctx):
